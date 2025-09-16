@@ -1,9 +1,11 @@
 # Segmented Code Adjustment Quantization (SAQ)
 
+[SIGMOD 2026] SAQ: Pushing the Limits of Vector Quantization through Code Adjustment and Dimension Segmentation. [arxiv](https://arxiv.org/abs/2509.12086)
+
 
 > The fastest and most accurate quantization method for high-dimensional vectors.
 
-Our project introduces **Segmented CAQ** (**SAQ**), a novel quantization algorithm built upon dimension balancing techniques and dimension reduction techniques. This advancement enables compression of high-dimensional vectors at arbitrary compression rates while maintaining quantization and estimation simplicity identical to classical scalar quantization. Notably, Segmented CAQ (SAQ) delivers superior accuracy at equivalent compression rates and efficient quantization process (80x faster than RaBitQ).
+Our project introduces **Segmented Code Adjustment Quantization** (**SAQ**), a novel quantization algorithm built upon dimension balancing techniques and dimension reduction techniques. This advancement enables compression of high-dimensional vectors at arbitrary compression rates while maintaining quantization and estimation simplicity identical to classical scalar quantization. Notably, Segmented CAQ (SAQ) delivers superior accuracy at equivalent compression rates and efficient quantization process (80x faster than RaBitQ).
 
 Here are some results of SAQ on the Msmarco dataset with 1024 dimensions and 10 million vectors.  ![Comparsion of SAQ with other quantization methods for the Msmarco dataset](./results/saq_combine_results.png)
 
