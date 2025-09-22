@@ -20,7 +20,7 @@ constexpr size_t TOPK = 100;
 constexpr size_t NPROBE = 200;
 constexpr double TOLERANCE = 3e-3;
 
-class RecallTest : public TestBase, public ::testing::Test {
+class IvfRecallTest : public TestBase, public ::testing::Test {
     const int kNumThread = 64;
 
   protected:
@@ -131,26 +131,26 @@ class RecallTest : public TestBase, public ::testing::Test {
     }
 };
 
-TEST_F(RecallTest, SAQ_OPENAI1536_AllBits) {
+TEST_F(IvfRecallTest, SAQ_OPENAI1536_AllBits) {
     QuantizeConfig config;
     std::map<int, float> expected_recalls = {{1, 0.88058}, {4, 0.94257}, {8, 0.94578}};
     testDatasetQuantTypeRecall("openai1536", config, expected_recalls);
 }
 
-TEST_F(RecallTest, CAQ_OPENAI1536_AllBits) {
+TEST_F(IvfRecallTest, CAQ_OPENAI1536_AllBits) {
     QuantizeConfig config;
     config.enable_segmentation = false;
     std::map<int, float> expected_recalls = {{1, 0.83499}, {4, 0.93404}, {8, 0.94296}};
     testDatasetQuantTypeRecall("openai1536", config, expected_recalls);
 }
 
-TEST_F(RecallTest, SAQ_GIST_AllBits) {
+TEST_F(IvfRecallTest, SAQ_GIST_AllBits) {
     QuantizeConfig config;
     std::map<int, float> expected_recalls = {{1, 0.88347}, {4, 0.95118}, {8, 0.95421}};
     testDatasetQuantTypeRecall("gist", config, expected_recalls);
 }
 
-TEST_F(RecallTest, CAQ_GIST_AllBits) {
+TEST_F(IvfRecallTest, CAQ_GIST_AllBits) {
     QuantizeConfig config;
     config.enable_segmentation = false;
     std::map<int, float> expected_recalls = {{1, 0.74049}, {4, 0.93212}, {8, 0.95048}};

@@ -205,7 +205,7 @@ TEST_F(SingleEstimatorTest, CaqSingle) {
     config_.enable_segmentation = false;
     prepare_saq_data();
     quant();
-    auto [vars_err, fast_err, acc_err] = testEst("CaqSingle");
+    testEst("CaqSingle");
 }
 
 TEST_F(SingleEstimatorTest, SaqSingle_GIST) {

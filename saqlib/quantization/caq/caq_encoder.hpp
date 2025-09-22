@@ -11,6 +11,40 @@
 #include "quantization/config.h"
 
 namespace saqlib {
+
+class CaqCode {
+  public:
+    double v_mx;  // max absolute value of the vector, v_mx = max{|o_i|}
+    double v_mi;  // v_mi = -v_mx
+    double delta; // (v_mx-v_mi) / 2^b
+    Eigen::VectorXi code;
+    double oa_l2sqr; // |o_a|^2, squared L2 norm of the quantized vector
+    double ip_o_oa;  // <o, o_a>
+
+    double o_l2sqr;     // |o|^2, squared L2 norm of the original vector
+    double o_l2norm;    // |o|, L2 norm of the original vector
+    double fac_rescale; // |o|^2 / <o, o_a>
+    double fac_error;   // |o|^2 * epsilon * sqrt((1 - <o, o_a>^2) / <o, o_a>^2) / sqrt(dim - 1)
+
+    void rescale_vmx_to1() {
+        if (!v_mx)
+            return;
+        const auto scale_rate = 1.0 / v_mx;
+        delta *= scale_rate;
+        ip_o_oa *= scale_rate;
+        oa_l2sqr *= scale_rate * scale_rate;
+        fac_rescale *= v_mx;
+
+        v_mi *= scale_rate;
+        v_mx *= scale_rate;
+    }
+
+    Eigen::VectorXf get_oa() const {
+        CHECK(code.size() >= 1) << "CAQSingleData::get_oa() called before encode.";
+        return (code.cast<float>() * delta).array() + v_mi;
+    }
+};
+
 class CAQEncoder {
     static constexpr float kConstEpsilon = 1.9;
 
@@ -185,9 +219,9 @@ class CAQEncoder {
         }
     }
 
-    void encode_and_fac(const FloatVec &curr_vec, CaqCode &caq) {
+    void encode_and_fac(const FloatVec &curr_vec, QuantBaseCode &base_code, const FloatVec *centroid) {
+        CaqCode caq;
         encode(curr_vec, caq);
-        caq.rescale_vmx_to1();
         caq.o_l2sqr = curr_vec.squaredNorm();
         caq.o_l2norm = std::sqrt(caq.o_l2sqr);
         caq.fac_rescale = caq.ip_o_oa ? caq.o_l2sqr / caq.ip_o_oa : 0;
@@ -196,6 +230,20 @@ class CAQEncoder {
         caq.fac_error = caq.o_l2sqr * kConstEpsilon *
                         std::sqrt((((caq.o_l2sqr * caq.oa_l2sqr) / (caq.ip_o_oa * caq.ip_o_oa)) - 1) /
                                   (num_dim_pad_ - 1));
+
+        caq.rescale_vmx_to1();
+
+        base_code.o_l2norm = caq.o_l2norm;
+        base_code.fac_rescale = caq.fac_rescale;
+        base_code.fac_error = caq.fac_error;
+        if (num_bits_ > 1) {
+            if (centroid) {
+                base_code.ip_cent_oa = centroid->dot(caq.get_oa());
+            }
+            base_code.norm_ip_o_oa = caq.ip_o_oa / caq.o_l2norm / std::sqrt(caq.oa_l2sqr);
+
+            base_code.code = std::move(caq.code);
+        }
     }
 };
 } // namespace saqlib

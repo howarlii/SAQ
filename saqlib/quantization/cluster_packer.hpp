@@ -27,7 +27,6 @@ class ClusterPacker {
 
     // Cluster data reference
     CAQClusterData &clus_;
-    const FloatVec *centroid_ = nullptr; // Optional centroid for factor calculation
 
     // Memory buffers
     memory::UniqueArray<float> fac_o_l2norm_;
@@ -50,33 +49,31 @@ class ClusterPacker {
                                       shortcode_byte_num_ * KFastScanSize * total_blocks_)
                                 : memory::make_unique_array<uint8_t>(0)),
           long_code_(1, num_dim_pad_) {
-        centroid_ = &clus.centroid();
     }
 
     /**
-     * @brief Pack a single CAQ data point
+     * @brief Pack a single quant data
      * @param i Index of the data point in the cluster
-     * @param caq CAQ single data containing codes and factors
+     * @param base_code CAQ single data containing codes and factors
      */
-    void store_and_pack(size_t i, const CaqCode &caq) {
-        fac_o_l2norm_[i] = caq.o_l2norm;
+    void store_and_pack(size_t i, const QuantBaseCode &base_code) {
+        fac_o_l2norm_[i] = base_code.o_l2norm;
 
         if (num_bits_ == 0) {
             return; // No packing needed for 0 bits
         }
-        assert(num_dim_pad_ == static_cast<size_t>(caq.code.size()));
-        const auto ip_cent_oa = centroid_->dot(caq.get_oa());
+        assert(num_dim_pad_ == static_cast<size_t>(base_code.code.size()));
 
         // Store short data
-        fac_ip_cent_oa_[i] = ip_cent_oa; // Optional
-        pack_short_codes(caq.code, &short_codes_[i * shortcode_byte_num_]);
+        fac_ip_cent_oa_[i] = base_code.ip_cent_oa; // Optional
+        pack_short_codes(base_code.code, &short_codes_[i * shortcode_byte_num_]);
 
         // Store long data
         auto &ex_fac = clus_.long_factor(i);
-        ex_fac.rescale = caq.fac_rescale;
-        ex_fac.error = caq.fac_error;
+        ex_fac.rescale = base_code.fac_rescale;
+        ex_fac.error = base_code.fac_error;
         for (size_t j = 0; j < num_dim_pad_; ++j) {
-            long_code_[j] = caq.code[j] & (short_bit_ - 1);
+            long_code_[j] = base_code.code[j] & (short_bit_ - 1);
         }
         compacted_code_func_(clus_.long_code(i), &long_code_(0, 0), num_dim_pad_);
     }

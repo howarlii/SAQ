@@ -19,7 +19,7 @@ constexpr double RelativeErrorTolerance = 1e-3;
 const int kNumThread = 64;
 
 template <DistType kDistType = DistType::L2Sqr>
-class ErrorTest : public TestBase, public ::testing::Test {
+class IvfErrorTest : public TestBase, public ::testing::Test {
   protected:
     SearcherConfig searcher_cfg_;
     std::unique_ptr<IVF> ivf_;
@@ -69,12 +69,12 @@ class ErrorTest : public TestBase, public ::testing::Test {
             }
 
             // Calculate relative error and insert into recorder
-            if (true_dist > 0) {
-                float relative_err = std::abs(est_dist - true_dist) / true_dist;
+            if (true_dist != 0) {
+                float relative_err = std::abs((est_dist - true_dist) / true_dist);
                 query_error_recorder.insert(relative_err);
-                float fst_relative_err = (true_dist - fast_dist_list[i]) / true_dist;
+                float fst_relative_err = (true_dist - fast_dist_list[i]) / std::abs(true_dist);
                 query_fst_error_recorder.insert(fst_relative_err);
-                float vars_relative_err = (true_dist - vars_dist_list[i]) / true_dist;
+                float vars_relative_err = (true_dist - vars_dist_list[i]) / std::abs(true_dist);
                 query_vars_error_recorder.insert(vars_relative_err);
             }
         }
@@ -137,17 +137,17 @@ class ErrorTest : public TestBase, public ::testing::Test {
     }
 };
 
-using ErrorTestL2Sqr = ErrorTest<DistType::L2Sqr>;
-using ErrorTestIP = ErrorTest<DistType::IP>;
+using IvfErrorTestL2Sqr = IvfErrorTest<DistType::L2Sqr>;
+using IvfErrorTestIP = IvfErrorTest<DistType::IP>;
 
-TEST_F(ErrorTestL2Sqr, SAQ_OPENAI1536_AllBits) {
+TEST_F(IvfErrorTestL2Sqr, SAQ_OPENAI1536_AllBits) {
     QuantizeConfig config;
     std::map<int, std::pair<float, float>> expected_avg_errors =
         {{1, {7.44806e-03, 1.2469e-01}}, {4, {9.49550e-04, 8.9169e-02}}, {8, {6.74842e-05, 8.9225e-02}}};
     testDatasetQuantTypeError("openai1536", config, expected_avg_errors);
 }
 
-TEST_F(ErrorTestL2Sqr, CAQ_OPENAI1536_AllBits) {
+TEST_F(IvfErrorTestL2Sqr, CAQ_OPENAI1536_AllBits) {
     QuantizeConfig config;
     config.enable_segmentation = false;
     std::map<int, std::pair<float, float>> expected_avg_errors =
@@ -155,14 +155,14 @@ TEST_F(ErrorTestL2Sqr, CAQ_OPENAI1536_AllBits) {
     testDatasetQuantTypeError("openai1536", config, expected_avg_errors);
 }
 
-TEST_F(ErrorTestL2Sqr, SAQ_GIST_AllBits) {
+TEST_F(IvfErrorTestL2Sqr, SAQ_GIST_AllBits) {
     QuantizeConfig config;
     std::map<int, std::pair<float, float>> expected_avg_errors =
         {{1, {5.88538e-03, 1.5112e-01}}, {4, {5.77164e-04, 1.4452e-01}}, {8, {4.00324e-05, 1.1412e-01}}};
     testDatasetQuantTypeError("gist", config, expected_avg_errors);
 }
 
-TEST_F(ErrorTestL2Sqr, CAQ_GIST_AllBits) {
+TEST_F(IvfErrorTestL2Sqr, CAQ_GIST_AllBits) {
     QuantizeConfig config;
     config.enable_segmentation = false;
     std::map<int, std::pair<float, float>> expected_avg_errors =
@@ -170,17 +170,17 @@ TEST_F(ErrorTestL2Sqr, CAQ_GIST_AllBits) {
     testDatasetQuantTypeError("gist", config, expected_avg_errors);
 }
 
-TEST_F(ErrorTestIP, SAQ_GIST_AllBits_IP) {
+TEST_F(IvfErrorTestIP, SAQ_GIST_AllBits_IP) {
     QuantizeConfig config;
     std::map<int, std::pair<float, float>> expected_avg_errors =
-        {{1, {1.64518e-02, -3.5776e-01}}, {4, {1.72508e-03, -4.0844e-01}}, {8, {1.21334e-04, -3.2103e-01}}};
+        {{1, {1.89057e-02, -4.2505e-01}}, {4, {1.99794e-03, -4.7931e-01}}, {8, {1.43901e-04, -3.7490e-01}}};
     testDatasetQuantTypeError("gist", config, expected_avg_errors);
 }
 
-TEST_F(ErrorTestIP, CAQ_GIST_AllBits_IP) {
+TEST_F(IvfErrorTestIP, CAQ_GIST_AllBits_IP) {
     QuantizeConfig config;
     config.enable_segmentation = false;
     std::map<int, std::pair<float, float>> expected_avg_errors =
-        {{1, {5.58955e-02, -1.2444e-01}}, {4, {7.82302e-03, -1.2824e-01}}, {8, {5.33789e-04, -1.3040e-01}}};
+        {{1, {6.46918e-02, -1.4815e-01}}, {4, {9.38642e-03, -1.4744e-01}}, {8, {5.99436e-04, -1.4850e-01}}};
     testDatasetQuantTypeError("gist", config, expected_avg_errors);
 }

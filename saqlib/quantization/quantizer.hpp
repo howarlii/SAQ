@@ -57,21 +57,15 @@ class QuantizerCluster {
         CAQEncoder encoder(num_dim_pad_, num_bits_, data_->cfg);
         ClusterPacker packer(num_dim_pad_, num_bits_, clus, data_->cfg.use_fastscan);
 
-        CaqCode caq;
+        QuantBaseCode base_code;
         for (size_t i = 0; i < num_points; ++i) {
             const auto &curr_vec = o_vecs.row(i);
 
-            encoder.encode_and_fac(curr_vec, caq);
-            packer.store_and_pack(i, caq);
+            encoder.encode_and_fac(curr_vec, base_code, &centroid);
+            packer.store_and_pack(i, base_code);
 
             // Update metrics
-            const auto &oa_l2sqr = caq.oa_l2sqr;
-            const auto &o_l2norm = caq.o_l2norm;
-            double ipre = 0;
-            if (oa_l2sqr && o_l2norm) {
-                ipre = std::abs(caq.ip_o_oa) / o_l2norm / std::sqrt(oa_l2sqr);
-            }
-            metrics_.norm_ip_o_oa.insert(ipre);
+            metrics_.norm_ip_o_oa.insert(base_code.norm_ip_o_oa);
         }
 
         // Finalize and store all packed data
@@ -121,52 +115,46 @@ class QuantizerSingle {
         }
 
         CAQEncoder encoder(num_dim_pad_, num_bits_, data_->cfg);
-        CaqCode caq;
-        encoder.encode_and_fac(o_vecs, caq);
+        QuantBaseCode base_code;
+        encoder.encode_and_fac(o_vecs, base_code, nullptr);
 
         // Store quantization results
-        store_quantization_result(caq_data, caq);
+        store_quantization_result(caq_data, base_code);
 
         // Update metrics
-        const auto &oa_l2sqr = caq.oa_l2sqr;
-        const auto &o_l2norm = caq.o_l2norm;
-        double ipre = 0;
-        if (oa_l2sqr && o_l2norm) {
-            ipre = std::abs(caq.ip_o_oa) / o_l2norm / std::sqrt(oa_l2sqr);
-        }
-        metrics_.norm_ip_o_oa.insert(ipre);
+        metrics_.norm_ip_o_oa.insert(base_code.norm_ip_o_oa);
     }
 
   private:
     /**
      * @brief Store quantization result into single data wrapper
      * @param single_data Target single data wrapper
-     * @param caq Quantization result to store
+     * @param base_code Quantization result to store
      */
-    void store_quantization_result(CaqSingleDataWrapper *single_data, const CaqCode &caq) const {
+    void store_quantization_result(CaqSingleDataWrapper *single_data, const QuantBaseCode &base_code) const {
         // Store L2 norm factor
-        single_data->factor_o_l2norm() = caq.o_l2norm;
+        single_data->factor_o_l2norm() = base_code.o_l2norm;
 
         if (num_bits_ == 0) {
             return; // No packing needed for 0 bits
         }
 
-        DCHECK_EQ(num_dim_pad_, static_cast<size_t>(caq.code.size()));
+        DCHECK_EQ(num_dim_pad_, static_cast<size_t>(base_code.code.size()));
 
         // Store ip_cent_oa factor (can be used for other purposes)
         single_data->factor_ip_cent_oa() = 0.0f; // Set to zero since no centroid
 
         // Pack short codes
-        pack_short_codes(caq.code, single_data->short_code());
+        pack_short_codes(base_code.code, single_data->short_code());
 
         // Store long factors
         auto &ex_fac = single_data->long_factor();
-        ex_fac.rescale = caq.fac_rescale;
-        ex_fac.error = caq.fac_error;
+        ex_fac.rescale = base_code.fac_rescale;
+        ex_fac.error = base_code.fac_error;
 
         // Pack long codes
         if (num_bits_ > 1) {
-            pack_long_codes(caq.code, single_data->long_code());
+            pack_long_codes(base_code.code, single_data->long_code());
         }
     }
 

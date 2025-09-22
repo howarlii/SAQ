@@ -13,35 +13,15 @@
 #include "utils/tools.hpp"
 
 namespace saqlib {
-class CaqCode {
+
+class QuantBaseCode {
   public:
-    float v_mx;   // max absolute value of the vector, v_mx = max{|o_i|}
-    float v_mi;   // v_mi = -v_mx
-    double delta; // (v_mx-v_mi) / 2^b
     Eigen::VectorXi code;
-    double oa_l2sqr; // |o_a|^2, squared L2 norm of the quantized vector
-    double ip_o_oa;  // <o, o_a>
-
-    float o_l2sqr;     // |o|^2, squared L2 norm of the original vector
-    float o_l2norm;    // |o|, L2 norm of the original vector
-    float fac_rescale; // |o|^2 / <o, o_a>
-    float fac_error;   // |o|^2 * epsilon * sqrt((1 - <o, o_a>^2) / <o, o_a>^2) / sqrt(dim - 1)
-
-    void rescale_vmx_to1() {
-        if (!v_mx)
-            return;
-        const auto scale_rate = 1.0 / v_mx;
-        v_mi *= scale_rate;
-        v_mx *= scale_rate;
-        delta *= scale_rate;
-        ip_o_oa *= scale_rate;
-        oa_l2sqr *= scale_rate * scale_rate;
-    }
-
-    Eigen::VectorXf get_oa() const {
-        CHECK(code.size() >= 1) << "CAQSingleData::get_oa() called before encode.";
-        return (code.cast<float>() * delta).array() + v_mi;
-    }
+    float o_l2norm;
+    float ip_cent_oa = 0;
+    float fac_rescale;      // rescale factor for estimation
+    float fac_error = 0;    // error factor for estimation
+    float norm_ip_o_oa = 0; // <o, o_a> / |o| / |o_a|. Only used for quant metrics
 };
 
 struct ExFactor {
